@@ -42,60 +42,111 @@ int main(int argv, char **args)
     int column = 3;
     SDL_Rect texture_rect;
     texture_rect.x = 16 * (column - 1);
-    texture_rect.y = 17 * (line - 1);
+    texture_rect.y = 16 * (line - 1);
     texture_rect.w = 16; // the width of the texture
     texture_rect.h = 17; // the height of the texture
+
+    // 50x50 matrix map when 0 is block A and 1 is block B
+    int renderingMapCurrentX = 0;
+    int renderingMapCurrentY = 0;
+
+    int map[50][50] = {};
+
+    for (int i = 0; i < 50; i++)
+    {
+        for (int j = 0; j < 50; j++)
+        {
+            map[i][j] = rand() % 2;
+        }
+    }
 
     SDL_Rect dest_rect;
 
     int windowWidth = 0;
     int windowHeight = 0;
-    int startX = 0;
-    int startY = 0;
 
     SDL_GetWindowSize(window, &windowWidth, &windowHeight);
     int spriteSize = 80;
 
-    int columnCount = (windowWidth / spriteSize);
-    int lineCount = (windowHeight / (spriteSize / 2)) * 2 - 1;
+    int spriteWidth = spriteSize;
+    int spriteHeight = spriteSize / 4;
+
+    int columnCount = 0;
+    int lineCount = 0;
+
+    if (windowWidth % spriteWidth == 0)
+        columnCount = (windowWidth / spriteWidth) + 5;
+    else
+        columnCount = (windowWidth / spriteWidth) + 5;
+
+    if (windowHeight % spriteHeight == 0)
+        lineCount = (windowHeight / spriteHeight) + 5;
+    else
+        lineCount = (windowHeight / spriteHeight) + 5;
+
+    int startX = 0;
+    int startY = -3;
 
     int matrix[lineCount][columnCount][2];
-    int startingY = 0;
 
-    for (int currentLine = 0; currentLine < lineCount; currentLine++)
+    for (int i = 0; i < lineCount; i++)
     {
-        for (int currentColumn = 0; currentColumn < columnCount; currentColumn++)
+        // Calculate the start point
+        if (i != 0)
         {
-
-            if (currentLine == 0) // If it's the first line, then we need to start the values
+            if (i % 2 == 0) // Even
             {
-                matrix[currentLine][currentColumn][0] = currentColumn * -1;
-                matrix[currentLine][currentColumn][1] = currentColumn;
+                startX = matrix[i - 1][0][0];
+                startY = matrix[i - 1][0][1] + 1;
             }
             else
             {
-                // Calculate the X value
-                if (currentLine % 2 == 0) // For even lines, the X value is the previous line X value + 1
-                    matrix[currentLine][currentColumn][0] = matrix[currentLine - 1][currentColumn][0] + 1;
-                else // For odd lines, the X value is the previous line X value
-                    matrix[currentLine][currentColumn][0] = matrix[currentLine - 1][currentColumn][0];
-
-                // Calculate the Y value
-                if (currentColumn == 0) // The first column will dictate the Y value for the entire line
-                {
-                    startingY = currentLine - matrix[currentLine][currentColumn][0];
-                    matrix[currentLine][currentColumn][1] = startingY;
-                }
-                else // The following columns will be the previous column Y value + 1
-                {
-                    matrix[currentLine][currentColumn][1] = matrix[currentLine][currentColumn - 1][1] + 1;
-                }
+                startX = matrix[i - 1][0][0] + 1;
+                startY = matrix[i - 1][0][1];
             }
         }
+
+        matrix[i][0][0] = startX;
+        matrix[i][0][1] = startY;
+
+        for (int j = 0; j < columnCount; j++)
+        {
+            if (i % 2 == 0 && j == columnCount - 1)
+                continue; // Skip the last column of even lines (it's not needed)
+            matrix[i][j][0] = startX - j;
+            matrix[i][j][1] = startY + j;
+        }
+    }
+
+    int initialXpoint = 0;
+    int initialYpoint = 0;
+
+    // 60 FPS Render loop
+
+    const int FPS = 60;
+    const int frameDelay = 1000 / FPS;
+
+    Uint32 frameStart;
+    int frameTime;
+
+    for (int i = 0; i < lineCount; i++)
+    {
+        std::cout << "Line " << i << " ";
+        for (int j = 0; j < columnCount; j++)
+        {
+            if (i % 2 == 0 && j == columnCount - 1)
+                continue;
+            std::cout << "[" << matrix[i][j][0] << "," << matrix[i][j][1] << "]";
+        }
+        std::cout << std::endl;
     }
 
     while (isRunning)
     {
+        frameStart = SDL_GetTicks();
+
+        // --
+
         while (SDL_PollEvent(&event))
         {
             switch (event.type)
@@ -111,21 +162,80 @@ int main(int argv, char **args)
                 }
                 if (event.key.keysym.sym == SDLK_UP)
                 {
-                    startY++;
+                    initialXpoint++;
+                    initialYpoint++;
                 }
                 if (event.key.keysym.sym == SDLK_DOWN)
                 {
-                    startY--;
+                    initialXpoint--;
+                    initialYpoint--;
                 }
                 if (event.key.keysym.sym == SDLK_LEFT)
                 {
-                    startX++;
+                    initialXpoint++;
+                    initialYpoint--;
                 }
                 if (event.key.keysym.sym == SDLK_RIGHT)
                 {
-                    startX--;
+                    initialXpoint--;
+                    initialYpoint++;
                 }
-                std::cout << "line: " << line << " column: " << column << std::endl;
+
+                // For WASD
+                if (event.key.keysym.sym == SDLK_w)
+                {
+                    renderingMapCurrentY++;
+                }
+                if (event.key.keysym.sym == SDLK_s)
+                {
+                    renderingMapCurrentY--;
+                }
+                if (event.key.keysym.sym == SDLK_a)
+                {
+                    renderingMapCurrentX++;
+                }
+                if (event.key.keysym.sym == SDLK_d)
+                {
+                    renderingMapCurrentX--;
+                }
+
+                std::cout << "InitialX: " << initialXpoint << " InitialY: " << initialYpoint << std::endl;
+
+                // Movement from left to right
+                if (initialXpoint <= -spriteSize && initialYpoint >= spriteSize)
+                {
+                    initialXpoint += spriteSize;
+                    initialYpoint -= spriteSize;
+                    renderingMapCurrentY--;
+                    renderingMapCurrentX++;
+
+                    std::cout << "Step A - X: " << initialXpoint << " Y: " << initialYpoint << std::endl;
+                }
+                // Movement from right to left
+                else if (initialXpoint >= spriteSize && initialYpoint <= -spriteSize)
+                {
+                    initialXpoint -= spriteSize;
+                    initialYpoint += spriteSize;
+                    renderingMapCurrentY++;
+                    renderingMapCurrentX--;
+                    std::cout << "Step B - X: " << initialXpoint << " Y: " << initialYpoint << std::endl;
+                }
+                else if (initialYpoint >= spriteSize)
+                {
+                    initialYpoint = 0;
+                    initialXpoint -= spriteSize;
+                    renderingMapCurrentY--;
+                    renderingMapCurrentX--;
+                    std::cout << "Step C - X: " << initialXpoint << " Y: " << initialYpoint << std::endl;
+                }
+                else if (initialYpoint <= -spriteSize)
+                {
+                    initialYpoint = 0;
+                    initialXpoint += spriteSize;
+                    renderingMapCurrentY++;
+                    renderingMapCurrentX++;
+                    std::cout << "Step D - X: " << initialXpoint << " Y: " << initialYpoint << std::endl;
+                }
             }
         }
 
@@ -137,36 +247,66 @@ int main(int argv, char **args)
             for (int jA = 0; jA < columnCount; jA++)
             {
 
+                // Skip the last column of even lines (it's not needed)
+                if (iA % 2 == 0 && jA == columnCount - 1)
+                    continue;
+
                 int i = matrix[iA][jA][0];
                 int j = matrix[iA][jA][1];
                 int half = spriteSize / 2;
 
                 SDL_Rect rect;
-                rect.x = startX + (j - 0) * spriteSize;
-                rect.y = startY + (i - 0.5) * spriteSize;
+                rect.x = initialXpoint + (j * spriteSize);
+                rect.y = initialYpoint + (i * spriteSize);
                 rect.w = spriteSize;
                 rect.h = spriteSize;
 
-                char text[100];
-                sprintf(text, "%d,%d", i, j);
+                int posX = renderingMapCurrentX + j;
+                int posY = renderingMapCurrentY + i;
+
+                if (map[posX][posY] == 0)
+                {
+                    texture_rect.x = 16 * (3 - 1);
+                    texture_rect.y = 16 * (1 - 1);
+                }
+                else
+                {
+                    texture_rect.x = 16 * (2 - 1);
+                    texture_rect.y = 16 * (1 - 1);
+                }
 
                 cartesianToIsometric(rect.x, rect.y, rect.x, rect.y);
                 SDL_RenderCopy(renderer, texture, &texture_rect, &rect);
 
-                SDL_SetRenderDrawColor(renderer, 255, 100, 50, 255);
+                if (iA < 2 && jA < 2)
+                    SDL_SetRenderDrawColor(renderer, 255, 100, 50, 255);
+                else
+                    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+
                 SDL_RenderDrawLine(renderer, rect.x, rect.y + spriteSize * 0.25, rect.x + spriteSize * 0.5, rect.y);
                 SDL_RenderDrawLine(renderer, rect.x + spriteSize * 0.5, rect.y, rect.x + spriteSize, rect.y + spriteSize * 0.25);
                 SDL_RenderDrawLine(renderer, rect.x + spriteSize, rect.y + spriteSize * 0.25, rect.x + spriteSize * 0.5, rect.y + spriteSize * 0.5);
                 SDL_RenderDrawLine(renderer, rect.x + spriteSize * 0.5, rect.y + spriteSize * 0.5, rect.x, rect.y + spriteSize * 0.25);
                 SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-                // Current position in cartesian
+                // // Current position in cartesian
 
-                drawnText(renderer, font, rect.x + spriteSize * 0.35, rect.y + 10, text, {255, 255, 255, 255});
+                // char text[100];
+                // sprintf(text, "%d,%d", i, j);
+                // drawnText(renderer, font, rect.x + spriteSize * 0.35, rect.y + 10, text, {255, 255, 255, 255});
                 SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
             }
         }
 
         SDL_RenderPresent(renderer);
+
+        // --
+
+        frameTime = SDL_GetTicks() - frameStart;
+
+        // if (frameDelay > frameTime)
+        // {
+        //     SDL_Delay(frameDelay - frameTime);
+        // }
     }
 
     SDL_DestroyRenderer(renderer);
