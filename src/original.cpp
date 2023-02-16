@@ -1,0 +1,325 @@
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
+#include <SDL2/SDL_image.h>
+#include <iostream>
+
+void cartesianToIsometric(int x, int y, int &isoX, int &isoY)
+{
+    isoX = (x - y) / 2;
+    isoY = (x + y) / 4;
+}
+
+void drawnText(SDL_Renderer *renderer, TTF_Font *font, int x, int y, const char *text, SDL_Color color)
+{
+    SDL_Surface *surface = TTF_RenderText_Solid(font, text, color);
+    SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_Rect rect;
+    rect.x = x;
+    rect.y = y;
+    rect.w = surface->w;
+    rect.h = surface->h;
+    SDL_RenderCopy(renderer, texture, NULL, &rect);
+    SDL_FreeSurface(surface);
+    SDL_DestroyTexture(texture);
+}
+
+int main(int argv, char **args)
+{
+    SDL_Init(SDL_INIT_EVERYTHING);
+
+    SDL_Window *window = SDL_CreateWindow("Hyrdanya BETA", SDL_WINDOWPOS_CENTERED_DISPLAY(1), SDL_WINDOWPOS_CENTERED_DISPLAY(1), 1000, 600, 0);
+    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, 0);
+
+    bool isRunning = true;
+    SDL_Event event;
+
+    TTF_Init();
+    SDL_Texture *texture = IMG_LoadTexture(renderer, "assets/blocks.png");
+    TTF_Font *font = TTF_OpenFont("assets/Gameplay.ttf", 12);
+
+    // Line
+    int line = 1;
+    int column = 3;
+    SDL_Rect texture_rect;
+    texture_rect.x = 16 * (column - 1);
+    texture_rect.y = 16 * (line - 1);
+    texture_rect.w = 16; // the width of the texture
+    texture_rect.h = 17; // the height of the texture
+
+    // 50x50 matrix map when 0 is block A and 1 is block B
+    int renderingMapCurrentX = 0;
+    int renderingMapCurrentY = 0;
+
+    int map[500][500] = {};
+
+    for (int i = 0; i < 200; i++)
+    {
+        for (int j = 0; j < 200; j++)
+        {
+            if (rand() % 2)
+                map[i][j] = rand() % 2;
+            else
+                map[i][j] = 2;
+        }
+    }
+
+    SDL_Rect dest_rect;
+
+    int windowWidth = 0;
+    int windowHeight = 0;
+
+    SDL_GetWindowSize(window, &windowWidth, &windowHeight);
+    int spriteSize = 48;
+
+    int spriteWidth = spriteSize;
+    int spriteHeight = spriteSize / 4;
+
+    int columnCount = 0;
+    int lineCount = 0;
+
+    if (windowWidth % spriteWidth == 0)
+        columnCount = (windowWidth / spriteWidth) + 5;
+    else
+        columnCount = (windowWidth / spriteWidth) + 5;
+
+    if (windowHeight % spriteHeight == 0)
+        lineCount = (windowHeight / spriteHeight) + 5;
+    else
+        lineCount = (windowHeight / spriteHeight) + 5;
+
+    int startX = 0;
+    int startY = -3;
+
+    int matrix[lineCount][columnCount][2];
+
+    for (int i = 0; i < lineCount; i++)
+    {
+        // Calculate the start point
+        if (i != 0)
+        {
+            if (i % 2 == 0) // Even
+            {
+                startX = matrix[i - 1][0][0];
+                startY = matrix[i - 1][0][1] + 1;
+            }
+            else
+            {
+                startX = matrix[i - 1][0][0] + 1;
+                startY = matrix[i - 1][0][1];
+            }
+        }
+
+        matrix[i][0][0] = startX;
+        matrix[i][0][1] = startY;
+
+        for (int j = 0; j < columnCount; j++)
+        {
+            if (i % 2 == 0 && j == columnCount - 1)
+                continue; // Skip the last column of even lines (it's not needed)
+            matrix[i][j][0] = startX - j;
+            matrix[i][j][1] = startY + j;
+        }
+    }
+
+    int initialXpoint = 0;
+    int initialYpoint = 0;
+
+    // 60 FPS Render loop
+
+    const int FPS = 60;
+    const int frameDelay = 1000 / FPS;
+
+    Uint32 frameStart;
+    int frameTime;
+
+    for (int i = 0; i < lineCount; i++)
+    {
+        std::cout << "Line " << i << " ";
+        for (int j = 0; j < columnCount; j++)
+        {
+            if (i % 2 == 0 && j == columnCount - 1)
+                continue;
+            std::cout << "[" << matrix[i][j][0] << "," << matrix[i][j][1] << "]";
+        }
+        std::cout << std::endl;
+    }
+
+    while (isRunning)
+    {
+        frameStart = SDL_GetTicks();
+
+        // --
+
+        while (SDL_PollEvent(&event))
+        {
+            switch (event.type)
+            {
+            case SDL_QUIT:
+                isRunning = false;
+                break;
+
+            case SDL_KEYDOWN:
+                if (event.key.keysym.sym == SDLK_ESCAPE)
+                {
+                    isRunning = false;
+                }
+                if (event.key.keysym.sym == SDLK_UP)
+                {
+                    initialXpoint += 5;
+                    initialYpoint += 5;
+                }
+                if (event.key.keysym.sym == SDLK_DOWN)
+                {
+                    initialXpoint -= 5;
+                    initialYpoint -= 5;
+                }
+                if (event.key.keysym.sym == SDLK_LEFT)
+                {
+                    initialXpoint += 5;
+                    initialYpoint -= 5;
+                }
+                if (event.key.keysym.sym == SDLK_RIGHT)
+                {
+                    initialXpoint -= 5;
+                    initialYpoint += 5;
+                }
+
+                // For WASD
+                if (event.key.keysym.sym == SDLK_w)
+                {
+                    renderingMapCurrentY++;
+                }
+                if (event.key.keysym.sym == SDLK_s)
+                {
+                    renderingMapCurrentY--;
+                }
+                if (event.key.keysym.sym == SDLK_a)
+                {
+                    renderingMapCurrentX++;
+                }
+                if (event.key.keysym.sym == SDLK_d)
+                {
+                    renderingMapCurrentX--;
+                }
+
+                std::cout << "InitialX: " << initialXpoint << " InitialY: " << initialYpoint << std::endl;
+
+                // Movement from left to right
+                if (initialXpoint <= -spriteSize && initialYpoint >= spriteSize)
+                {
+                    initialXpoint += spriteSize;
+                    initialYpoint -= spriteSize;
+                    renderingMapCurrentY--;
+                    renderingMapCurrentX++;
+
+                    std::cout << "Step A - X: " << initialXpoint << " Y: " << initialYpoint << std::endl;
+                }
+                // Movement from right to left
+                else if (initialXpoint >= spriteSize && initialYpoint <= -spriteSize)
+                {
+                    initialXpoint -= spriteSize;
+                    initialYpoint += spriteSize;
+                    renderingMapCurrentY++;
+                    renderingMapCurrentX--;
+                    std::cout << "Step B - X: " << initialXpoint << " Y: " << initialYpoint << std::endl;
+                }
+                else if (initialYpoint >= spriteSize)
+                {
+                    initialYpoint = 0;
+                    initialXpoint -= spriteSize;
+                    renderingMapCurrentY--;
+                    renderingMapCurrentX--;
+                    std::cout << "Step C - X: " << initialXpoint << " Y: " << initialYpoint << std::endl;
+                }
+                else if (initialYpoint <= -spriteSize)
+                {
+                    initialYpoint = 0;
+                    initialXpoint += spriteSize;
+                    renderingMapCurrentY++;
+                    renderingMapCurrentX++;
+                    std::cout << "Step D - X: " << initialXpoint << " Y: " << initialYpoint << std::endl;
+                }
+            }
+        }
+
+        SDL_RenderClear(renderer);
+        SDL_SetRenderDrawColor(renderer, 255, 100, 50, 255);
+
+        for (int iA = 0; iA < lineCount; iA++)
+        {
+            for (int jA = 0; jA < columnCount; jA++)
+            {
+
+                // Skip the last column of even lines (it's not needed)
+                if (iA % 2 == 0 && jA == columnCount - 1)
+                    continue;
+
+                int i = matrix[iA][jA][0];
+                int j = matrix[iA][jA][1];
+                int half = spriteSize / 2;
+
+                SDL_Rect rect;
+                rect.x = initialXpoint + (j * spriteSize);
+                rect.y = initialYpoint + (i * spriteSize);
+                rect.w = spriteSize;
+                rect.h = spriteSize;
+
+                int posX = renderingMapCurrentX + j;
+                int posY = renderingMapCurrentY + i;
+
+                if (map[posX][posY] == 0)
+                {
+                    texture_rect.x = 16 * (3 - 1);
+                    texture_rect.y = 16 * (1 - 1);
+                }
+                else if (map[posX][posY] == 1)
+                {
+                    texture_rect.x = 16 * (2 - 1);
+                    texture_rect.y = 16 * (1 - 1);
+                }
+                else
+                {
+                    texture_rect.x = 16 * (4 - 1);
+                    texture_rect.y = 16 * (3 - 1);
+                }
+
+                cartesianToIsometric(rect.x, rect.y, rect.x, rect.y);
+                SDL_RenderCopy(renderer, texture, &texture_rect, &rect);
+
+                if (iA < 2 && jA < 2)
+                    SDL_SetRenderDrawColor(renderer, 255, 100, 50, 255);
+                else
+                    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+
+                // SDL_RenderDrawLine(renderer, rect.x, rect.y + spriteSize * 0.25, rect.x + spriteSize * 0.5, rect.y);
+                // SDL_RenderDrawLine(renderer, rect.x + spriteSize * 0.5, rect.y, rect.x + spriteSize, rect.y + spriteSize * 0.25);
+                // SDL_RenderDrawLine(renderer, rect.x + spriteSize, rect.y + spriteSize * 0.25, rect.x + spriteSize * 0.5, rect.y + spriteSize * 0.5);
+                // SDL_RenderDrawLine(renderer, rect.x + spriteSize * 0.5, rect.y + spriteSize * 0.5, rect.x, rect.y + spriteSize * 0.25);
+                SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+                // // Current position in cartesian
+
+                // char text[100];
+                // sprintf(text, "%d,%d", i, j);
+                // drawnText(renderer, font, rect.x + spriteSize * 0.35, rect.y + 10, text, {255, 255, 255, 255});
+                SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+            }
+        }
+
+        SDL_RenderPresent(renderer);
+
+        // --
+
+        frameTime = SDL_GetTicks() - frameStart;
+
+        // if (frameDelay > frameTime)
+        // {
+        //     SDL_Delay(frameDelay - frameTime);
+        // }
+    }
+
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
+
+    return 0;
+}
