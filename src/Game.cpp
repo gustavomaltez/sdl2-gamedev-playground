@@ -4,6 +4,8 @@
 #include <SDL2/SDL.h>
 #include <iostream>
 
+Settings Game::settings = {64, false};
+
 void Game::initialize()
 {
     std::cout << "Initializing Game" << std::endl;
@@ -22,9 +24,9 @@ void Game::initialize()
     managers.gridManager = new GridManager();
     managers.gridManager->initialize(width, height, 64);
 
-    running = true;
+    state.isRunning = true;
 
-    while (running)
+    while (state.isRunning)
     {
         frameStart = SDL_GetTicks();
 
@@ -39,6 +41,30 @@ void Game::initialize()
     }
 }
 
+void Game::updateSetting(int setting, int value)
+{
+    if (setting == TILE_SIZE)
+    {
+        managers.gridManager->updateTileSize(value);
+        Game::settings.tileSize = value;
+    }
+    else if (setting == SHOW_LOGS)
+        Game::settings.showLogs = value;
+    else
+        std::cout << "Invalid setting" << std::endl;
+}
+
+int Game::getSetting(int setting)
+{
+    if (setting == TILE_SIZE)
+        return Game::settings.tileSize;
+    else if (setting == SHOW_LOGS)
+        return Game::settings.showLogs;
+    else
+        std::cout << "Invalid setting" << std::endl;
+    return 0;
+}
+
 void Game::handleEvents()
 {
     SDL_Event event;
@@ -51,23 +77,16 @@ void Game::handleEvents()
             std::cout << "Keydown Event" << std::endl;
             break;
         case SDL_QUIT:
-            running = false;
+            state.isRunning = false;
             break;
         case SDL_WINDOWEVENT:
             if (event.window.event == SDL_WINDOWEVENT_RESIZED)
-            {
-                std::cout << "Window resized" << std::endl;
-                std::cout << "New width: " << event.window.data1 << std::endl;
-                std::cout << "New height: " << event.window.data2 << std::endl;
                 managers.gridManager->updateGridSize(event.window.data1, event.window.data2);
-            }
             break;
         default:
             break;
         }
     }
-
-    // std::cout << "Game input handled" << std::endl;
 }
 
 void Game::update()
@@ -84,7 +103,6 @@ void Game::render()
     {
         for (int jA = 0; jA < managers.gridManager->columns; jA++)
         {
-
             // Skip the last column of even lines (it's not needed)
             if (iA % 2 == 0 && jA == managers.gridManager->columns - 1)
                 continue;

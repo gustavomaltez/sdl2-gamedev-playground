@@ -1,4 +1,5 @@
 #include "GridManager.h"
+#include "Game.h"
 #include <iostream>
 #include <iomanip>
 
@@ -113,6 +114,9 @@ void GridManager::populateGrid(int startX, int startY)
 
 void GridManager::printGrid()
 {
+    if (!Game::getSetting(SHOW_LOGS))
+        return;
+
     for (int i = 0; i < rows; i++)
     {
         for (int j = 0; j < columns; j++)
