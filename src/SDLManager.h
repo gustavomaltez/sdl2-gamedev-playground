@@ -5,11 +5,11 @@
 class SDLManager
 {
 public:
-    SDLManager();
     ~SDLManager();
     SDL_Window *window;
     SDL_Renderer *renderer;
     int handleEvents(SDL_Event *event);
+    void initialize();
 };
 
 #endif /* SDLMANAGER_H */
