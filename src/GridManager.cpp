@@ -7,7 +7,7 @@
 #include "Game.h"
 
 const int START_X = 0;
-const int START_Y = 0;
+const int START_Y = -1;
 const int EXTRA_GRID_SPACE = 3;
 
 GridManager::GridManager()
@@ -16,15 +16,13 @@ GridManager::GridManager()
   width = 0;
   height = 0;
   columns = 0;
-  tileSize = 0;
   grid = nullptr;
 }
 
-void GridManager::initialize(int windowWidth, int windowHeight, int tileSize)
+void GridManager::initialize(int windowWidth, int windowHeight)
 {
   width = windowWidth;
   height = windowHeight;
-  this->tileSize = tileSize;
   updateGridSize(width, height);
 }
 
@@ -35,6 +33,7 @@ void GridManager::updateGridSize(int windowWidth, int windowHeight)
   clearGrid();
   width = windowWidth;
   height = windowHeight;
+  int tileSize = Game::getSetting(TILE_SIZE);
   columns = (width / tileSize) + EXTRA_GRID_SPACE;
   rows = (height / (tileSize / 4)) + EXTRA_GRID_SPACE;
   generateGrid();
@@ -42,9 +41,8 @@ void GridManager::updateGridSize(int windowWidth, int windowHeight)
   printGrid();
 }
 
-void GridManager::updateTileSize(int tileSize)
+void GridManager::updateTileSize()
 {
-  this->tileSize = tileSize;
   updateGridSize(width, height);
 }
 
@@ -111,9 +109,12 @@ void GridManager::printGrid()
 {
   if (!Game::getSetting(SHOW_LOGS)) return;
 
-  forEachTile([](int x, int y) {
-    std::cout << "[" << std::setw(3) << x << "," << std::setw(3) << y << "] ";
-  });
+  for (int i = 0; i < rows; i++) {
+    for (int j = 0; j < columns; j++)
+      if (!shouldSkipTile(i, j))
+        std::cout << "[" << std::setw(3) << grid[i][j][0] << "," << std::setw(3) << grid[i][j][1] << "] ";
+    std::cout << std::endl;
+  }
 }
 
 bool GridManager::shouldSkipTile(int currentLine, int currentColumn)

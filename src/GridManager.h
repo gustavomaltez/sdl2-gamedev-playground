@@ -22,14 +22,12 @@ class GridManager
   int width;
   /* The height of the rendering canvas. */
   int height;
-  /* The actual size of the tile to be rendered. It should be a square. */
-  int tileSize;
   /* Initializes the virtual grid using the provided parameters. */
-  void initialize(int windowWidth, int windowHeight, int tileSize);
+  void initialize(int windowWidth, int windowHeight);
   /* Deallocates the previous grid from the memory and generate a new one with the provided size */
   void updateGridSize(int windowWidth, int windowHeight);
-  /* Changes the size of the tiles on the grid. It implies in generating a new grid. */
-  void updateTileSize(int tileSize);
+  /* Generates a new grid using the updated tile size. */
+  void updateTileSize();
   /**
    * Executes the provided callback for each tile in the grid.
    * - The first parameter of the callback is the X coordinate of the tile.
