@@ -25,6 +25,7 @@
 // - [ ] Create an abstraction to handle map loading and saving.
 // - [ ] Create an abstraction to handle map editing.
 // - [ ] Create an abstraction to draw debug information on the grid (tile coord, lines around the tiles, etc).
+// - [ ] Create an abstraction to handle coordinates extractions from a given position (x, y).
 
 int main(int argv, char **args)
 {
