@@ -1,10 +1,12 @@
 #include "Game.h"
 
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
 
 #include <iostream>
 
 #include "GridManager.h"
+#include "PositionHelper.h"
 #include "SDLManager.h"
 
 Settings Game::settings = {64, false};
@@ -25,7 +27,15 @@ void Game::initialize()
   SDL_GetWindowSize(managers.sdlManager->window, &width, &height);
 
   managers.gridManager = new GridManager();
-  managers.gridManager->initialize(width, height, 64);
+  managers.gridManager->initialize(width, height);
+
+  // Temp
+  texture = IMG_LoadTexture(managers.sdlManager->renderer, "assets/blocks.png");
+  texture_rect.x = 16 * 1;
+  texture_rect.y = 16 * 0;
+  texture_rect.w = 16;  // the width of the texture
+  texture_rect.h = 17;  // the height of the texture
+  // ---
 
   state.isRunning = true;
 
@@ -45,8 +55,8 @@ void Game::initialize()
 void Game::updateSetting(int setting, int value)
 {
   if (setting == TILE_SIZE) {
-    managers.gridManager->updateTileSize(value);
     Game::settings.tileSize = value;
+    managers.gridManager->updateTileSize();
   } else if (setting == SHOW_LOGS)
     Game::settings.showLogs = value;
   else
@@ -97,20 +107,34 @@ void Game::render()
   SDL_SetRenderDrawColor(managers.sdlManager->renderer, 255, 100, 50, 255);
 
   managers.gridManager->forEachTile([this](int x, int y) {
-    int spriteSize = managers.gridManager->tileSize;
+    int spriteSize = Game::getSetting(TILE_SIZE);
+
+    // Temp
 
     SDL_Rect rect;
-    rect.x = ((y * spriteSize) - (x * spriteSize)) / 2;
-    rect.y = ((y * spriteSize) + (x * spriteSize)) / 4;
+    Coordinates cords = PositionHelper::getTileIsometricScreenCoordinates(x, y);
+    rect.x = cords.x;
+    rect.y = cords.y;
     rect.w = spriteSize;
     rect.h = spriteSize;
 
-    SDL_SetRenderDrawColor(managers.sdlManager->renderer, 0, 255, 0, 255);
-    SDL_RenderDrawLine(managers.sdlManager->renderer, rect.x, rect.y + spriteSize * 0.25, rect.x + spriteSize * 0.5, rect.y);
-    SDL_RenderDrawLine(managers.sdlManager->renderer, rect.x + spriteSize * 0.5, rect.y, rect.x + spriteSize, rect.y + spriteSize * 0.25);
-    SDL_RenderDrawLine(managers.sdlManager->renderer, rect.x + spriteSize, rect.y + spriteSize * 0.25, rect.x + spriteSize * 0.5, rect.y + spriteSize * 0.5);
-    SDL_RenderDrawLine(managers.sdlManager->renderer, rect.x + spriteSize * 0.5, rect.y + spriteSize * 0.5, rect.x, rect.y + spriteSize * 0.25);
+    SDL_RenderCopy(managers.sdlManager->renderer, texture, &texture_rect, &rect);
+
+    Lines square = PositionHelper::getFullTileLines(rect.x, rect.y);
+    SDL_SetRenderDrawColor(managers.sdlManager->renderer, 0, 100, 200, 255);
+    SDL_RenderDrawLine(managers.sdlManager->renderer, square.top.x1, square.top.y1, square.top.x2, square.top.y2);
+    SDL_RenderDrawLine(managers.sdlManager->renderer, square.left.x1, square.left.y1, square.left.x2, square.left.y2);
+    SDL_RenderDrawLine(managers.sdlManager->renderer, square.bottom.x1, square.bottom.y1, square.bottom.x2, square.bottom.y2);
+    SDL_RenderDrawLine(managers.sdlManager->renderer, square.right.x1, square.right.y1, square.right.x2, square.right.y2);
+
+    Lines surface = PositionHelper::getTileSurfaceLines(rect.x, rect.y);
+    SDL_SetRenderDrawColor(managers.sdlManager->renderer, 100, 50, 200, 255);
+    SDL_RenderDrawLine(managers.sdlManager->renderer, surface.top.x1, surface.top.y1, surface.top.x2, surface.top.y2);
+    SDL_RenderDrawLine(managers.sdlManager->renderer, surface.left.x1, surface.left.y1, surface.left.x2, surface.left.y2);
+    SDL_RenderDrawLine(managers.sdlManager->renderer, surface.bottom.x1, surface.bottom.y1, surface.bottom.x2, surface.bottom.y2);
+    SDL_RenderDrawLine(managers.sdlManager->renderer, surface.right.x1, surface.right.y1, surface.right.x2, surface.right.y2);
     SDL_SetRenderDrawColor(managers.sdlManager->renderer, 0, 0, 0, 255);
+    // ---
   });
 
   SDL_RenderPresent(managers.sdlManager->renderer);

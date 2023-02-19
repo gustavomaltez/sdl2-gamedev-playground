@@ -35,6 +35,9 @@ class Game
   void handleEvents();
   void update();
   void render();
+  // Temp
+  SDL_Texture *texture;
+  SDL_Rect texture_rect;
 };
 
 #endif /* GAME_H */
