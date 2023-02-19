@@ -1,111 +1,119 @@
 #ifndef GRIDMANAGER_H
 #define GRIDMANAGER_H
+#include <functional>
+#include <iostream>
 
 class GridManager
 {
-public:
-    GridManager();
-    /**
-     * The virtual grid. A matrix of rows of columns of cartesian coordinates.
-     *
-     * The grid is a 3D array of integers. The first dimension is the row, the
-     * second is the column and the third is the coordinate (0 = X, 1 = Y).
-     */
-    int ***grid;
-    /* The number of columns in the virtual grid. */
-    int columns;
-    /* The number of rows in the virtual grid. */
-    int rows;
-    /* The width of the rendering canvas. */
-    int width;
-    /* The height of the rendering canvas. */
-    int height;
-    /* The actual size of the tile to be rendered. It should be a square. */
-    int tileSize;
-    /* Initializes the virtual grid using the provided parameters. */
-    void initialize(int windowWidth, int windowHeight, int tileSize);
-    /* Deallocates the previous grid from the memory and generate a new one with the provided size */
-    void updateGridSize(int windowWidth, int windowHeight);
-    /* Changes the size of the tiles on the grid. It implies in generating a new grid. */
-    void updateTileSize(int tileSize);
+ public:
+  GridManager();
+  /**
+   * The virtual grid. A matrix of rows of columns of cartesian coordinates.
+   *
+   * The grid is a 3D array of integers. The first dimension is the row, the
+   * second is the column and the third is the coordinate (0 = X, 1 = Y).
+   */
+  int*** grid;
+  /* The number of columns in the virtual grid. */
+  int columns;
+  /* The number of rows in the virtual grid. */
+  int rows;
+  /* The width of the rendering canvas. */
+  int width;
+  /* The height of the rendering canvas. */
+  int height;
+  /* The actual size of the tile to be rendered. It should be a square. */
+  int tileSize;
+  /* Initializes the virtual grid using the provided parameters. */
+  void initialize(int windowWidth, int windowHeight, int tileSize);
+  /* Deallocates the previous grid from the memory and generate a new one with the provided size */
+  void updateGridSize(int windowWidth, int windowHeight);
+  /* Changes the size of the tiles on the grid. It implies in generating a new grid. */
+  void updateTileSize(int tileSize);
+  /**
+   * Executes the provided callback for each tile in the grid.
+   * - The first parameter of the callback is the X coordinate of the tile.
+   * - The second parameter of the callback is the Y coordinate of the tile.
+   */
+  void forEachTile(std::function<void(int, int)> callback);
 
-private:
-    /* Deallocates the previous grid from the memory. */
-    void clearGrid();
-    /* Allocates a new grid in the memory using the current width and height. */
-    void generateGrid();
-    /* Populates the grid with the cartesian coordinates of each tile. */
-    void populateGrid(int startX, int startY);
-    /* Pretty prints the current grid in the console. */
-    void printGrid();
-    /**
-     * Checks if the current tile should be skipped in an operation.
-     *
-     * - The tile will be skipped if it's in the last column of a even row. (Keep
-     * in mind that the row/column count starts at 0).
-     *
-     * This is used to avoid making operations that involves a tile in a column
-     * that will not be used during the rendering process. Since we are working
-     * with an isometric grid, there's a small pixel difference on the X axis
-     * between the tiles of the same column but different rows. For odd rows
-     * (1, 3, 5...) the first column starts at X + half of the tile size of the
-     * same column on the previous row.
-     *
-     * Graphically, this generic grid with cartesian coordinates:
-     * [  0,  0] [ -1,  1] [ -2,  2]
-     * [  0,  1] [ -1,  2] [ -2,  3]
-     * [  1,  1] [  0,  2] [ -1,  3]
-     * [  1,  2] [  0,  3] [ -1,  4]
-     * [  2,  2] [  1,  3] [  0,  4]
-     *
-     * Would be rendered in an isometric grid as:
-     * A1 B1 C1
-     *  A2 B2 C2
-     * A3 B3 C3
-     *  A4 B4 C4
-     *
-     * To fix this problem we need to include an extra column to the odd rows
-     * (1,3,5) and starts the odd rows at one isometric tile to the left.
-     *
-     * Graphically, the same grid (with the extra column and the odd rows shifted):
-     * [  0,  0] [ -1,  1] [ -2,  2]
-     * [  1,  0] [  0,  1] [ -1,  2] [ -2,  3]
-     * [  1,  1] [  0,  2] [ -1,  3]
-     * [  2,  1] [  1,  2] [  0,  3] [ -1,  4]
-     * [  2,  2] [  1,  3] [  0,  4]
-     *
-     * Would be rendered as:
-     *
-     *  A1 B1 C1
-     * A2 B2 C2 D2
-     *  A3 B3 C3
-     * A4 B4 C4 D4
-     *
-     * Note that now the odd rows are shifted to the left by one tile.
-     * R1 starts at [  1,  0] instead of [  0,  0]
-     * R3 starts at [  2,  1] instead of [  1,  1]
-     *
-     * We should skip the extra column while rendering the even rows because if
-     * we don't, we'll end up with a similar problem as the one we had before.
-     *
-     * The problem generated by the extra column in all rows:
-     *   A1 B1 C1 D1
-     * A2 B2 C2 D2
-     *  A3 B3 C3 D3
-     * A4 B4 C4 D4
-     *
-     * For all iterations purposes, we always consider the number of rows as the
-     * actual number of rows and the number of columns as the number of columns
-     * in the odd rows. With this in mind, every time we'll do an operation on
-     * a tile, we'll need to check if the tile is located in the last column of
-     * an even row. If so, we'll skip the operation.
-     *
-     * @param currentLine The current line.
-     * @param currentColumn The current column.
-     *
-     * @return True if the tile should be skipped, false otherwise.
-     */
-    bool shouldSkipTile(int currentLine, int currentColumn);
+ private:
+  /* Deallocates the previous grid from the memory. */
+  void clearGrid();
+  /* Allocates a new grid in the memory using the current width and height. */
+  void generateGrid();
+  /* Populates the grid with the cartesian coordinates of each tile. */
+  void populateGrid(int startX, int startY);
+  /* Pretty prints the current grid in the console. */
+  void printGrid();
+  /**
+   * Checks if the current tile should be skipped in an operation.
+   *
+   * - The tile will be skipped if it's in the last column of a even row. (Keep
+   * in mind that the row/column count starts at 0).
+   *
+   * This is used to avoid making operations that involves a tile in a column
+   * that will not be used during the rendering process. Since we are working
+   * with an isometric grid, there's a small pixel difference on the X axis
+   * between the tiles of the same column but different rows. For odd rows
+   * (1, 3, 5...) the first column starts at X + half of the tile size of the
+   * same column on the previous row.
+   *
+   * Graphically, this generic grid with cartesian coordinates:
+   * [ 0, 0] [-1, 1] [-2, 2]
+   * [ 0, 1] [ -1, 2] [ -2, 3]
+   * [ 1, 1] [ 0, 2] [ -1, 3]
+   * [ 1, 2] [ 0, 3] [ -1, 4]
+   * [ 2, 2] [ 1, 3] [ 0, 4]
+   *
+   * Would be rendered in an isometric grid as:
+   * A1 B1 C1
+   *  A2 B2 C2
+   * A3 B3 C3
+   *  A4 B4 C4
+   *
+   * To fix this problem we need to include an extra column to the odd rows
+   * (1,3,5) and starts the odd rows at one isometric tile to the left.
+   *
+   * Graphically, the same grid (with the extra column and the odd rows shifted):
+   * [ 0, 0] [-1, 1] [-2, 2]
+   * [ 1, 0] [ 0, 1] [-1, 2] [-2, 3]
+   * [ 1, 1] [ 0, 2] [-1, 3]
+   * [ 2, 1] [ 1, 2] [ 0, 3] [-1, 4]
+   * [ 2, 2] [ 1, 3] [ 0, 4]
+   *
+   * Would be rendered as:
+   *
+   *  A1 B1 C1
+   * A2 B2 C2 D2
+   *  A3 B3 C3
+   * A4 B4 C4 D4
+   *
+   * Note that now the odd rows are shifted to the left by one tile.
+   * R1 starts at [ 1, 0] instead of [ 0, 0]
+   * R3 starts at [ 2, 1] instead of [ 1, 1]
+   *
+   * We should skip the extra column while rendering the even rows because if
+   * we don't, we'll end up with a similar problem as the one we had before.
+   *
+   * The problem generated by the extra column in all rows:
+   *   A1 B1 C1 D1
+   * A2 B2 C2 D2
+   *  A3 B3 C3 D3
+   * A4 B4 C4 D4
+   *
+   * For all iterations purposes, we always consider the number of rows as the
+   * actual number of rows and the number of columns as the number of columns
+   * in the odd rows. With this in mind, every time we'll do an operation on
+   * a tile, we'll need to check if the tile is located in the last column of
+   * an even row. If so, we'll skip the operation.
+   *
+   * @param currentLine The current line.
+   * @param currentColumn The current column.
+   *
+   * @return True if the tile should be skipped, false otherwise.
+   */
+  bool shouldSkipTile(int currentLine, int currentColumn);
 };
 
 #endif /* GRIDMANAGER_H */
