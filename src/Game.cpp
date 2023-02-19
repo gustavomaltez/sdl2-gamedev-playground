@@ -96,7 +96,7 @@ void Game::render()
   SDL_RenderClear(managers.sdlManager->renderer);
   SDL_SetRenderDrawColor(managers.sdlManager->renderer, 255, 100, 50, 255);
 
-  auto forEachTile = [this](int x, int y) {
+  managers.gridManager->forEachTile([this](int x, int y) {
     int spriteSize = managers.gridManager->tileSize;
 
     SDL_Rect rect;
@@ -111,8 +111,7 @@ void Game::render()
     SDL_RenderDrawLine(managers.sdlManager->renderer, rect.x + spriteSize, rect.y + spriteSize * 0.25, rect.x + spriteSize * 0.5, rect.y + spriteSize * 0.5);
     SDL_RenderDrawLine(managers.sdlManager->renderer, rect.x + spriteSize * 0.5, rect.y + spriteSize * 0.5, rect.x, rect.y + spriteSize * 0.25);
     SDL_SetRenderDrawColor(managers.sdlManager->renderer, 0, 0, 0, 255);
-  };
+  });
 
-  managers.gridManager->forEachTile(forEachTile);
   SDL_RenderPresent(managers.sdlManager->renderer);
 }
